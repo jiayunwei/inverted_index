@@ -10,6 +10,7 @@
 #include <vector>
 #include <string>
 #include <iostream>
+#include<fstream>
 
 enum SEGMENTTYPE {
     SPACESEGMENT = 0,
@@ -21,6 +22,7 @@ class Invert {
         Invert(const std::string fieldname, const SEGMENTTYPE type);
         ~Invert();
         void AddDocument(int docid, const std::string& content);
+        void Serialize(const std::string &indexpath);
         void Print();
     private:
         std::map<std::string, std::set<int> > _tempInvertTable;

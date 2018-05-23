@@ -5,6 +5,28 @@
  ************************************************************************/
 #include "invert.h"
 
+#include <fcntl.h>
+#include <stdio.h>  
+#include <stdlib.h>  
+#include <unistd.h>
+#include <sys/types.h>  
+#include <sys/stat.h>  
+//linux
+bool create_dir(const std::string& dir) {
+    if (access(dir.c_str(), 0) == -1)  {  
+        int flag=mkdir(dir.c_str(), 0777);
+        if (flag) {
+            return false;
+        }
+    }
+    return true;
+}
+
+template<typename T>
+std::ostream& binary_write(std::ostream& stream, const T& value){
+    return stream.write(reinterpret_cast<const char*>(&value), sizeof(T));
+}
+
 Invert::Invert(const std::string fieldname, const SEGMENTTYPE type):
     _fieldname(fieldname), _type(type) {
     }
@@ -67,4 +89,27 @@ void Invert::Print() {
         }
         std::cout << std::endl;
     }
+}
+
+void Invert::Serialize(const std::string &indexpath) {
+
+    if (!create_dir(indexpath)) {
+        std::cout << "creat indexpath error" << std::endl;
+        return;
+    }
+
+    std::ofstream stream_trm(indexpath + "/index.trm", std::ios::binary | std::ios::out | std::ios::app);
+    std::ofstream stream_doc(indexpath + "/index.doc", std::ios::binary | std::ios::out | std::ios::app);
+    stream_doc.seekp(0, std::ios::end);
+    uint64_t total_offset = stream_doc.tellp();
+    for(auto iter = _tempInvertTable.begin(); iter != _tempInvertTable.end(); iter++) {
+        stream_trm << iter->first << " " << total_offset << std::endl;
+        binary_write(stream_doc, (int)iter->second.size());
+        total_offset +=  (iter->second.size() + 1) * 4;
+        for(auto it = _tempInvertTable[iter->first].begin(); it != _tempInvertTable[iter->first].end(); it++) {
+            binary_write(stream_doc, *it);
+        }
+    }
+    stream_trm.close();
+    stream_doc.close();
 }
